@@ -14,7 +14,6 @@ rules:
   - endpoints
   verbs:
   - '*'
-
 - apiGroups:
   - apps
   resources:
@@ -25,9 +24,18 @@ rules:
   - statefulsets
   verbs:
   - '*'
-- apiGroups:
-  - networking.k8s.io
-  resources:
-  - ingresses
-  verbs:
-  - '*'
+  
+  ---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: custom-rolebinding
+  namespace: mynamespace
+subjects:
+- kind: User
+  name: custom-user
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: custom-role
+  apiGroup: rbac.authorization.k8s.io
