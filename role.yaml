@@ -1,0 +1,33 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  creationTimestamp: null
+  name: custom-role
+  namespace: mynamespace
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  - configmaps
+  - pods
+  - endpoints
+  verbs:
+  - '*'
+
+- apiGroups:
+  - apps
+  resources:
+  - replicasets
+  - daemonsets
+  - deployments
+  - controllerrevisions
+  - statefulsets
+  verbs:
+  - '*'
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - '*'
