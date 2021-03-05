@@ -13,6 +13,8 @@ spec:
       value: "xxxxxx"
     - name: DEMO_KEY
       value: "xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    - name: DEMO_SHARE
+      value: "share"
     securityContext:
       privileged: true
       allowPrivilegeEscalation: true
@@ -21,7 +23,7 @@ spec:
     lifecycle:
       postStart:
         exec:
-          command: ["/bin/sh", "-c", "mkdir /opt/share1 && mount --verbose -t cifs //$DEMO_ACC.file.core.windows.net/share /opt/share1 -o vers=3.0,username=$DEMO_ACC,password=$DEMO_KEY,dir_mode=0777,file_mode=0777,serverino"]
+          command: ["/bin/sh", "-c", "mkdir /opt/share1 && mount --verbose -t cifs //$DEMO_ACC.file.core.windows.net/$DEMO_SHARE /opt/share1 -o vers=3.0,username=$DEMO_ACC,password=$DEMO_KEY,dir_mode=0777,file_mode=0777,serverino"]
     volumeMounts:
     - name: azure
       mountPath: /opt/share
