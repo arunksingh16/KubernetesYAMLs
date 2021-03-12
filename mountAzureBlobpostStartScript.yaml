@@ -6,7 +6,7 @@ metadata:
   name: dev
 spec:
    containers:
-  - image: singharunk/dev:latest
+  - image: singharunk/dev:driver
     name: dev
     env:
     - name: AZURE_STORAGE_ACCOUNT
