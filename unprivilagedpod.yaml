@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: ubuntu
+  name: dev
+spec:
+  securityContext:
+    seLinuxOptions:
+      level: 's0:c31,c25'
+    fsGroup: 1000980000
+  containers:
+  - image: singharunk/dev:driver
+    name: dev
+    imagePullPolicy: Always
+    env:
+    - name: VAR
+      value: "xxxxxx"
+    securityContext:
+       capabilities:
+         drop:
+         - KILL
+         - MKNOD
+         - SETGID
+         - SETUID
+       runAsUser: 1000980000
+    command: ["/bin/sh"]
+    args: ["-c", "while true; do echo hello; sleep 10;done"]
