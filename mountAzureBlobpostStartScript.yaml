@@ -23,10 +23,10 @@ spec:
     lifecycle:
       postStart:
         exec:
-          command: ["/bin/sh", "-c", "mkdir /opt/container && mkdir /opt/tmp && sudo blobfuse /opt/container --container-name=$BLOB_CONTAINER --tmp-path=/opt/tmp"]
+          command: ["/bin/sh", "-c", "mkdir /opt/container /opt/tmp && blobfuse /opt/container --container-name=$BLOB_CONTAINER --tmp-path=/opt/tmp -o attr_timeout=240 -o entry_timeout=240 -o negative_timeout=120"]
     volumeMounts:
     - name: azure
-      mountPath: /opt/container
+      mountPath: /opt/share
   dnsPolicy: ClusterFirst
   restartPolicy: Always
   volumes:
