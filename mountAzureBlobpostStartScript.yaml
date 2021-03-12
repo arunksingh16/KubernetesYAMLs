@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: ubuntu
+  name: dev
+spec:
+   containers:
+  - image: singharunk/dev:latest
+    name: dev
+    env:
+    - name: AZURE_STORAGE_ACCOUNT
+      value: "xxxxxx"
+    - name: AZURE_STORAGE_ACCESS_KEY
+      value: "xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    - name: BLOB_CONTAINER
+      value: "test"
+    securityContext:
+      privileged: true
+      allowPrivilegeEscalation: true
+    command: ["/bin/sh"]
+    args: ["-c", "while true; do echo hello; sleep 10;done"]
+    lifecycle:
+      postStart:
+        exec:
+          command: ["/bin/sh", "-c", "mkdir /opt/container && mkdir /opt/tmp && sudo blobfuse /opt/container --container-name=$BLOB_CONTAINER --tmp-path=/opt/tmp"]
+    volumeMounts:
+    - name: azure
+      mountPath: /opt/container
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+  volumes:
+  - name: azure
+    emptyDir: {}
