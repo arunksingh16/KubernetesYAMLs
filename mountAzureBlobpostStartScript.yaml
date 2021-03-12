@@ -13,7 +13,9 @@ spec:
       value: "xxxxxx"
     - name: AZURE_STORAGE_ACCESS_KEY
       value: "xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-    - name: BLOB_CONTAINER
+    - name: AZURE_MOUNT_POINT
+      value: "/opt/container"
+    - name: AZURE_STORAGE_ACCOUNT_CONTAINER
       value: "test"
     securityContext:
       privileged: true
@@ -23,12 +25,6 @@ spec:
     lifecycle:
       postStart:
         exec:
-          command: ["/bin/sh", "-c", "mkdir /opt/container /opt/tmp && blobfuse /opt/container --container-name=$BLOB_CONTAINER --tmp-path=/opt/tmp -o attr_timeout=240 -o entry_timeout=240 -o negative_timeout=120"]
-    volumeMounts:
-    - name: azure
-      mountPath: /opt/share
+          command: ["/bin/sh", "-c", "mkdir ${AZURE_MOUNT_POINT} /tmp/${AZURE_STORAGE_ACCOUNT} && blobfuse ${AZURE_MOUNT_POINT} --container-name=${AZURE_STORAGE_ACCOUNT_CONTAINER} --tmp-path=/tmp/${AZURE_STORAGE_ACCOUNT} -o attr_timeout=240 -o entry_timeout=240 -o negative_timeout=120"]
   dnsPolicy: ClusterFirst
   restartPolicy: Always
-  volumes:
-  - name: azure
-    emptyDir: {}
