@@ -1,0 +1,184 @@
+# p12 file as certificate
+apiVersion: v1
+data:
+  elastic-certificates.p12: <base64>
+kind: Secret
+metadata:
+  name: tst-elasticsearch-certificates
+  namespace: custom-namespace
+---
+# password for superuser
+apiVersion: v1
+data:
+  password: <base64>
+kind: Secret
+metadata:
+  labels:
+    app: tst-elasticsearch
+    cluster: npd
+    env: dev
+  name: tst-elasticsearch-user
+  namespace: custom-namespace
+type: Opaque
+---
+# elasticsearch config file
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: tst-elasticsearch
+    cluster: npd
+    env: dev
+  name: tst-elasticsearch-config
+  namespace: custom-namespace
+data:
+  elasticsearch.yml: |
+    xpack.security.enabled: true
+    xpack.security.transport.ssl.enabled: true
+    xpack.security.transport.ssl.verification_mode: none
+    xpack.security.transport.ssl.keystore.path: /usr/share/elasticsearch/config/certs/elastic-certificates.p12
+    xpack.security.transport.ssl.truststore.path: /usr/share/elasticsearch/config/certs/elastic-certificates.p12
+    xpack.security.http.ssl.enabled: true
+    xpack.security.http.ssl.truststore.path: /usr/share/elasticsearch/config/certs/elastic-certificates.p12
+    xpack.security.http.ssl.keystore.path: /usr/share/elasticsearch/config/certs/elastic-certificates.p12
+---
+# STS elasticsearch
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  annotations:
+    esMajorVersion: "7"
+  labels:
+    app: tst-elasticsearch
+    cluster: npd
+    env: dev
+  name: tst-elasticsearch
+  namespace: custom-namespace
+spec:
+  podManagementPolicy: Parallel
+  replicas: 3
+  selector:
+    matchLabels:
+      app: tst-elasticsearch
+      cluster: npd
+      env: dev
+  serviceName: tst-elasticsearch-headless
+  template:
+    metadata:
+      labels:
+        app: tst-elasticsearch
+        cluster: npd
+        env: dev
+      name: tst-elasticsearch
+    spec:
+      containers:
+      - env:
+        - name: node.name
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: cluster.initial_master_nodes
+          value: tst-elasticsearch-0,tst-elasticsearch-1,tst-elasticsearch-2
+        - name: discovery.seed_hosts
+          value: tst-elasticsearch-headless
+        - name: cluster.name
+          value: elasticsearch
+        - name: network.host
+          value: 0.0.0.0
+        - name: ELASTIC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: tst-elasticsearch-user
+        - name: ELASTIC_USERNAME
+          value: elastic
+        image: elasticsearch:7.11.1
+        imagePullPolicy: Always
+        name: elasticsearch
+        ports:
+        - containerPort: 9200
+          name: http
+        - containerPort: 9300
+          name: transport
+        resources:
+          limits:
+            cpu: 2
+            memory: 6Gi
+          requests:
+            cpu: 2
+            memory: 6Gi
+        volumeMounts:
+        - mountPath: /usr/share/elasticsearch/data
+          name: tst-elasticsearch
+        - mountPath: /usr/share/elasticsearch/config/certs
+          name: elasticsearch-certificates
+        - mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+          name: esconfig
+          subPath: elasticsearch.yml
+      volumes:
+      - name: elasticsearch-certificates
+        secret:
+          secretName: tst-elasticsearch-certificates
+      - configMap:
+          name: tst-elasticsearch-config
+        name: esconfig
+  updateStrategy:
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - metadata:
+      name: tst-elasticsearch
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 2Gi
+      storageClassName: default
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: tst-elasticsearch
+    cluster: npd
+    env: dev
+  name: tst-elasticsearch
+  namespace: custom-namespace
+spec:
+  ports:
+  - name: http
+    port: 9200
+    protocol: TCP
+  - name: transport
+    port: 9300
+    protocol: TCP
+  selector:
+    app: tst-elasticsearch
+    cluster: npd
+    env: dev
+  type: ClusterIP
+  
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: tst-elasticsearch
+    cluster: npd
+    env: dev
+  name: tst-elasticsearch-headless
+  namespace: custom-namespace
+spec:
+  clusterIP: None
+  ports:
+  - name: http
+    port: 9200
+  - name: transport
+    port: 9300
+  publishNotReadyAddresses: true
+  selector:
+    app: tst-elasticsearch
+    cluster: npd
+    env: dev
+---
