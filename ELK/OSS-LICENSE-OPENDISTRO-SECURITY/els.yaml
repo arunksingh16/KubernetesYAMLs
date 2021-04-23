@@ -1,1 +1,167 @@
 
+apiVersion: v1
+data:
+  password: <base64>
+kind: Secret
+metadata:
+  labels:
+    app: tst-elasticsearch
+    cluster: npd
+    env: dev
+  name: tst-elasticsearch-user
+  namespace: default
+type: Opaque
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: tst-elasticsearch
+    cluster: npd
+    env: dev
+  name: tst-elasticsearch-config
+  namespace: default
+data:
+  elasticsearch.yml: |
+    xpack.security.enabled: false
+    opendistro_security.ssl.transport.pemcert_filepath: esnode.pem
+    opendistro_security.ssl.transport.pemkey_filepath: esnode-key.pem
+    opendistro_security.ssl.transport.pemtrustedcas_filepath: root-ca.pem
+    opendistro_security.ssl.transport.enforce_hostname_verification: false
+    opendistro_security.ssl.http.enabled: false
+    opendistro_security.ssl.http.pemcert_filepath: esnode.pem
+    opendistro_security.ssl.http.pemkey_filepath: esnode-key.pem
+    opendistro_security.ssl.http.pemtrustedcas_filepath: root-ca.pem
+    opendistro_security.allow_unsafe_democertificates: true
+    opendistro_security.allow_default_init_securityindex: true
+    opendistro_security.authcz.admin_dn:
+      - CN=kirk,OU=client,O=client,L=test, C=de
+    opendistro_security.audit.type: internal_elasticsearch
+    opendistro_security.enable_snapshot_restore_privilege: true
+    opendistro_security.check_snapshot_restore_write_privileges: true
+    opendistro_security.restapi.roles_enabled: ["all_access", "security_rest_api_access"]
+    opendistro_security.system_indices.enabled: true
+    opendistro_security.system_indices.indices: [".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opendistro-notifications-*", ".opendistro-notebooks", ".opendistro-asynchronous-search-response*"]
+    cluster.routing.allocation.disk.threshold_enabled: false
+    node.max_local_storage_nodes: 3
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  annotations:
+    esMajorVersion: "7"
+  labels:
+    app: tst-elasticsearch
+    cluster: npd
+    env: dev
+  name: tst-elasticsearch
+  namespace: default
+spec:
+  podManagementPolicy: Parallel
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tst-elasticsearch
+      cluster: npd
+      env: dev
+  serviceName: tst-elasticsearch-headless
+  template:
+    metadata:
+      labels:
+        app: tst-elasticsearch
+        cluster: npd
+        env: dev
+      name: tst-elasticsearch
+    spec:
+      containers:
+      - env:
+        - name: node.name
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: cluster.initial_master_nodes
+          value: tst-elasticsearch-0
+        - name: discovery.seed_hosts
+          value: tst-elasticsearch-headless
+        - name: cluster.name
+          value: elasticsearch
+        - name: network.host
+          value: 0.0.0.0
+        - name: ELASTIC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: tst-elasticsearch-user
+        - name: ELASTIC_USERNAME
+          value: elastic
+        image: singharunk/elasticsearch:7.10.2-plugin
+        imagePullPolicy: Always
+        name: elasticsearch
+        ports:
+        - containerPort: 9200
+          name: http
+        - containerPort: 9300
+          name: transport
+        volumeMounts:
+        - mountPath: /usr/share/elasticsearch/data
+          name: tst-elasticsearch
+        - mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+          name: esconfig
+          subPath: elasticsearch.yml
+      volumes:
+      - configMap:
+          name: tst-elasticsearch-config
+        name: esconfig
+      - name: tst-elasticsearch
+        emptyDir: {}
+  updateStrategy:
+    type: RollingUpdate
+    
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: tst-elasticsearch
+    cluster: npd
+    env: dev
+  name: tst-elasticsearch
+  namespace: default
+spec:
+  ports:
+  - name: http
+    port: 9200
+    protocol: TCP
+  - name: transport
+    port: 9300
+    protocol: TCP
+  selector:
+    app: tst-elasticsearch
+    cluster: npd
+    env: dev
+  type: ClusterIP
+  
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: tst-elasticsearch
+    cluster: npd
+    env: dev
+  name: tst-elasticsearch-headless
+  namespace: default
+spec:
+  clusterIP: None
+  ports:
+  - name: http
+    port: 9200
+  - name: transport
+    port: 9300
+  publishNotReadyAddresses: true
+  selector:
+    app: tst-elasticsearch
+    cluster: npd
+    env: dev
