@@ -12,7 +12,7 @@ chmod 775 /usr/share/elasticsearch/plugins/opendistro_security/tools/hash.sh; \
 ```
 
 
-# In case you want to handle certs in OpenDistro 
+### In case you want to handle certs in OpenDistro 
 
 ```
 # cert
@@ -32,7 +32,7 @@ openssl x509 -in root.cer -outform PEM -out rootca.pem
 
 ```
 
-# In case of logstash
+### Logstash needs PKCS#8 key
 
 ```
 openssl pkcs8 -topk8 -nocrypt -in logstash.key -out logstash.pem
