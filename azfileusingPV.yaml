@@ -1,4 +1,14 @@
 # kubectl create secret generic azure-files-secret --from-literal=azurestorageaccountname=STORAGE_ACCOUNT_NAME --from-literal=azurestorageaccountkey=STORAGE_ACCOUNT_KEY
+
+apiVersion: v1
+data:
+  azurestorageaccountkey: <>
+  azurestorageaccountname: <>
+kind: Secret
+metadata:
+  creationTimestamp: null
+  name: azure-secret
+---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
